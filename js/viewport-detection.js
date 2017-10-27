@@ -23,13 +23,10 @@
   var bottomAdPos = $('#div-gpt-ad-1508803854110-0').offset();
   var bottomAdSize = getAdSize('#div-gpt-ad-1508803854110-0');
 
-  function checkViewable(adPos, adW, adH, scrollY) {
-    var locX = adPos.x + adW,
-        locY = adPos.y + adH,
-        pageBottom = scrollY + h;
-    // console.log(locX + ', ' +locY);
-    if ((locX < w) && (scrollY < locY && locY < pageBottom)) return 'YES!';
-    else return 'No.';
+  function checkViewable(inViewValue) {
+    var num = inViewValue.replace(/%/g,'');
+    if(parseInt(num) >= 50) return 'YES!';
+    else return 'No';
   }
 
   function checkInView(adPos, adW, adH, scrollX, scrollY) {
@@ -42,6 +39,9 @@
     // part of ad is in the viewport
     if(BRcornerAdPosY > vpBottom && adPos.y < vpBottom) {
       adViewArea = adW * (vpBottom - adPos.y);
+      viewPercentage = Math.round(adViewArea / (adW * adH) * 100) + '%';
+    } else if (adPos.y < scrollY && BRcornerAdPosY < vpBottom) {
+      adViewArea = adW * (BRcornerAdPosY - scrollY);
       viewPercentage = Math.round(adViewArea / (adW * adH) * 100) + '%';
     }
     // ad is out of the viewport
@@ -104,8 +104,24 @@
     );
   }
 
+  function initialAdInfo() {
+    var adInfo = [ { name: 'A', inView: '-%', time: '-', viewable: '-' },
+                   { name: 'B', inView: '-%', time: '-', viewable: '-' },
+                   { name: 'C', inView: '-%', time: '-', viewable: '-' } ];
+    adInfo[0].inView = checkInView(upperAdPos, upperAdSize.w, upperAdSize.h, window.pageXOffset, window.pageYOffset);
+    adInfo[0].viewable = checkViewable(adInfo[0].inView);
+
+    adInfo[1].inView = checkInView(verticalAdPos, verticalAdSize.w, verticalAdSize.h, window.pageXOffset, window.pageYOffset);
+    adInfo[1].viewable = checkViewable(adInfo[1].inView);
+
+    adInfo[2].inView = checkInView(bottomAdPos, bottomAdSize.w, bottomAdSize.h, window.pageXOffset, window.pageYOffset);
+    adInfo[2].viewable = checkViewable(adInfo[2].inView);
+
+    return adInfo;
+  }
+
   function addInfoBlock() {
-    var html, adInfo;
+    var html, defaultAdInfo;
 
     getWindowSize();
     windowSizeInfo = '<p class="win-size">Width: ' + w + ' , Height: ' + h + '</p>';
@@ -115,12 +131,11 @@
           '<table><tr id="test"><th>Ad</th><th>In View</th><th>Time</th><th>Viewable</th></tr>'+
           '</table>'+
           '</div>';
-    adInfo = [ { name: 'A', inView: '-%', time: '30', viewable: '-' },
-                   { name: 'B', inView: '20%', time: '30', viewable: '-' } ];
+    defaultAdInfo = initialAdInfo();
 
 
     $('body').add(HTML(html));
-    adInfo.forEach(function(ad) {
+    defaultAdInfo.forEach(function(ad) {
       addTableRow(ad.name, ad.inView, ad.time, ad.viewable);
     });
 
@@ -130,12 +145,17 @@
       console.log(last_known_scroll_x);
 
       // check viewable for each ad
-      adInfo[0].viewable = checkViewable(upperAdPos, upperAdSize.w, upperAdSize.h, last_known_scroll_y);
-      adInfo[0].inView = checkInView(upperAdPos, upperAdSize.w, upperAdSize.h, last_known_scroll_x, last_known_scroll_y);
-      adInfo[1].viewable = checkViewable(verticalAdPos, verticalAdSize.w, verticalAdSize.h, last_known_scroll_y);
-      adInfo[1].inView = checkInView(verticalAdPos, verticalAdSize.w, verticalAdSize.h, last_known_scroll_x, last_known_scroll_y);
+
+      defaultAdInfo[0].inView = checkInView(upperAdPos, upperAdSize.w, upperAdSize.h, last_known_scroll_x, last_known_scroll_y);
+      defaultAdInfo[0].viewable = checkViewable(defaultAdInfo[0].inView);
+
+      defaultAdInfo[1].inView = checkInView(verticalAdPos, verticalAdSize.w, verticalAdSize.h, last_known_scroll_x, last_known_scroll_y);
+      defaultAdInfo[1].viewable = checkViewable(defaultAdInfo[1].inView);
+
+      defaultAdInfo[2].inView = checkInView(bottomAdPos, bottomAdSize.w, bottomAdSize.h, last_known_scroll_x, last_known_scroll_y);
+      defaultAdInfo[2].viewable = checkViewable(defaultAdInfo[2].inView);
       $('table tr').sub(1).fill(); // clear everything in the table except the header row
-      adInfo.forEach(function(ad) {
+      defaultAdInfo.forEach(function(ad) {
         addTableRow(ad.name, ad.inView, ad.time, ad.viewable);
       });
     });
